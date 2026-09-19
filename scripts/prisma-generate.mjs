@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 function run(env) {
-  return spawnSync('npx', ['prisma', 'generate'], { stdio: 'pipe', encoding: 'utf8', env: { ...process.env, ...env } });
+  return spawnSync('npx', ['prisma', 'generate'], { stdio: 'pipe', encoding: 'utf8', shell: true, env: { ...process.env, ...env } });
 }
 
 let result = run({});
