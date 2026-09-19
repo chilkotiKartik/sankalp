@@ -1,8 +1,7 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
-import helmet, * as helmetModule from 'helmet';
-const helmetFn = typeof helmet === 'function' ? helmet : (helmetModule as unknown as { default?: typeof helmet }).default ?? (helmetModule as unknown as typeof helmet);
+import { contentSecurityPolicy, crossOriginResourcePolicy, referrerPolicy } from 'helmet';
 import type { Container } from './container';
 import { errorHandler, notFoundHandler } from './lib/errors';
 import { loadAuth } from './middleware/auth';
@@ -29,14 +28,10 @@ export function createApp(c: Container) {
 
   app.use(requestId);
   if (!c.config.isTest) app.use(accessLog(c.logger));
-  app.use(
-    helmetFn({
-      // JSON API only — a locked-down CSP is safe here.
-      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
-      crossOriginResourcePolicy: { policy: 'same-site' },
-      referrerPolicy: { policy: 'no-referrer' },
-    }),
-  );
+  // JSON API only — locked-down CSP, same-site CORP, no-referrer policy.
+  app.use(contentSecurityPolicy({ directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } }));
+  app.use(crossOriginResourcePolicy({ policy: 'same-site' }));
+  app.use(referrerPolicy({ policy: 'no-referrer' }));
   app.use(
     cors({
       origin: (origin, cb) => cb(null, !origin || c.config.allowedOrigins.includes(origin)),
