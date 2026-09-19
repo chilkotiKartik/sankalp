@@ -1,0 +1,38 @@
+# What is NOT uploaded when deploying.
+#
+# The rule is: source and lockfile go up, everything derived or private stays here.
+# Two entries matter more than the rest.
+#
+#   .env      — real credentials. They belong in the platform's own encrypted store,
+#               never in a deployment's file list.
+#   .vercel   — local build output. The platform treats a `.vercel/output` directory
+#               in an upload as a finished build and skips building. Uploading a
+#               stale one would silently deploy yesterday's code.
+
+node_modules
+.env
+.env.*
+!.env.example
+.vercel
+.next
+dist
+coverage
+*.tsbuildinfo
+*.log
+
+# Generated at install time by the postinstall hook, from prisma/schema.prisma.
+packages/db/src/generated
+
+# Test and CI material: nothing here is served or imported by the app.
+e2e
+playwright-report
+test-results
+eval/report.json
+
+# Container build files — a different deployment target entirely.
+Dockerfile.api
+Dockerfile.web
+docker-compose.yml
+
+.git
+.DS_Store

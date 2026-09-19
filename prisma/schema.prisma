@@ -1,0 +1,246 @@
+// Sanjeevani Voice — data model
+//
+// Privacy principles:
+//  * Free-text health content (messages, clinical state) is stored only as AES-256-GCM ciphertext.
+//  * Structured clinical facts (symptom codes, urgency) are stored for summaries and timelines.
+//  * Conversations carry an expiry; `npm run db:purge` hard-deletes expired data.
+//  * Locations are stored only as a coarse geohash (~5 km), never raw coordinates.
+//  * Audit events never contain message content.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../packages/db/src/generated"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ConversationStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum FacilitySource {
+  GOOGLE_PLACES
+  CURATED_DIRECTORY
+}
+
+enum EmergencyAction {
+  DETECTED
+  CALL_INITIATED
+  LOCATION_SHARED
+  DIRECTIONS_OPENED
+  DISMISSED
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  anonymous          Boolean   @default(true)
+  role               UserRole  @default(USER)
+  languagePreference String    @default("auto")
+  createdAt          DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+
+  sessions        Session[]
+  conversations   Conversation[]
+  feedback        Feedback[]
+  emergencyEvents EmergencyEvent[]
+  auditEvents     AuditEvent[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 of the token id (jti); the token itself is never stored.
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Conversation {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          ConversationStatus @default(ACTIVE)
+  language        String             @default("en")
+  phase           String             @default("greeting")
+  urgency         String?
+  emergency       Boolean            @default(false)
+  /// Encrypted ClinicalState JSON (AES-256-GCM).
+  stateCiphertext String?
+  turnCount       Int                @default(0)
+  /// Coarse geohash (precision 5, ~5 km) of the last shared location.
+  areaGeohash     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  expiresAt       DateTime
+
+  messages        ConversationMessage[]
+  symptomEvents   SymptomEvent[]
+  triageResults   TriageResult[]
+  emergencyEvents EmergencyEvent[]
+  feedback        Feedback[]
+
+  @@index([userId, updatedAt])
+  @@index([expiresAt])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id                String       @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role              MessageRole
+  /// Encrypted message text (AES-256-GCM).
+  contentCiphertext String
+  inputMode         String?
+  language          String
+  intent            String?
+  createdAt         DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("conversation_messages")
+}
+
+model SymptomEvent {
+  id                    String       @id @default(cuid())
+  conversationId        String
+  conversation          Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  code                  String
+  severity              String
+  reportedDurationHours Float?
+  createdAt             DateTime     @default(now())
+
+  @@unique([conversationId, code])
+  @@index([conversationId])
+  @@map("symptom_events")
+}
+
+model TriageResult {
+  id                String       @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  urgency           String
+  emergency         Boolean
+  emergencyCategory String?
+  specialty         String
+  facilityType      String
+  confidence        String
+  source            String
+  symptomCodes      String[]
+  rationale         String[]
+  createdAt         DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("triage_results")
+}
+
+model Facility {
+  id                  String         @id @default(cuid())
+  source              FacilitySource
+  /// Google place_id or curated slug.
+  externalId          String         @unique
+  regionId            String
+  name                String
+  address             String
+  lat                 Float
+  lng                 Float
+  coordinatesApprox   Boolean        @default(false)
+  phone               String?
+  emergencyPhone      String?
+  types               String[]
+  verifiedSpecialties String[]
+  emergency24x7       Boolean?
+  ownership           String?
+  website             String?
+  sourceUrl           String?
+  verifiedOn          String?
+  active              Boolean        @default(true)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([regionId, active])
+  @@map("facilities")
+}
+
+/// Short-lived cache of provider search results. TTL is kept short to respect
+/// Google Maps Platform content caching terms; place IDs may be kept longer.
+model FacilityCache {
+  id        String   @id @default(cuid())
+  cacheKey  String   @unique
+  provider  String
+  placeIds  String[]
+  payload   Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("facility_cache")
+}
+
+model EmergencyEvent {
+  id             String          @id @default(cuid())
+  userId         String?
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  conversationId String?
+  conversation   Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  category       String?
+  ruleIds        String[]
+  action         EmergencyAction
+  createdAt      DateTime        @default(now())
+
+  @@index([createdAt])
+  @@map("emergency_events")
+}
+
+model Feedback {
+  id             String        @id @default(cuid())
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  helpful        Boolean
+  category       String
+  comment        String?
+  createdAt      DateTime      @default(now())
+
+  @@index([createdAt])
+  @@map("feedback")
+}
+
+model AuditEvent {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action       String
+  resourceType String
+  resourceId   String?
+  requestId    String?
+  /// Salted hash of the client IP — enough to spot abuse, not to identify.
+  ipHash       String?
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([userId])
+  @@map("audit_events")
+}

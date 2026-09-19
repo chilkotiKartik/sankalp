@@ -1,0 +1,55 @@
+{
+  "name": "sanjeevani-voice",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voice-first medical navigation and preliminary triage assistant for India.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "setup": "tsx scripts/setup.ts",
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm run dev -w @sanjeevani/api\" \"npm run dev -w @sanjeevani/web\"",
+    "dev:api": "npm run dev -w @sanjeevani/api",
+    "dev:web": "npm run dev -w @sanjeevani/web",
+    "build": "npm run db:generate && npm run typecheck && npm run build -w @sanjeevani/api && npm run build -w @sanjeevani/web",
+    "build:vercel-api": "npm run db:generate && node scripts/build-vercel-api.mjs",
+    "build:vercel-web": "npm run db:generate && npm run build -w @sanjeevani/web && npm run check:secrets",
+    "start": "concurrently -k -n api,web \"npm run start -w @sanjeevani/api\" \"npm run start -w @sanjeevani/web\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck -w @sanjeevani/api && npm run typecheck -w @sanjeevani/web",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:generate": "node scripts/prisma-generate.mjs",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:deploy": "tsx scripts/migrate.ts",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "tsx scripts/migrate.ts --reset && tsx prisma/seed.ts",
+    "db:purge": "tsx scripts/purge-expired.ts",
+    "check:secrets": "tsx scripts/check-client-secrets.ts",
+    "postinstall": "node scripts/prisma-generate.mjs",
+    "db:migrate:dev": "prisma migrate dev",
+    "eval": "tsx eval/run.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.0",
+    "concurrently": "^9.2.0",
+    "dotenv": "^17.2.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "globals": "^16.4.0",
+    "pg": "^8.16.0",
+    "prisma": "7.10.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^3.2.4"
+  }
+}

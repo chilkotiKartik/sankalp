@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "packages/types/src",
+    "packages/config/src",
+    "packages/medical-safety/src",
+    "packages/ai/src",
+    "packages/voice/src",
+    "packages/maps/src",
+    "prisma/seed.ts",
+    "scripts"
+  ]
+}

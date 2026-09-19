@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: '1'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  verify:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sanjeevani
+          POSTGRES_PASSWORD: sanjeevani
+          POSTGRES_DB: sanjeevani_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U sanjeevani -d sanjeevani_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://sanjeevani:sanjeevani@localhost:5432/sanjeevani_test
+      TEST_DATABASE_URL: postgresql://sanjeevani:sanjeevani@localhost:5432/sanjeevani_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # No real provider keys in CI: every test drives the providers through an
+      # injected fetch, so nothing here ever reaches Gemini, ElevenLabs or Google.
+      - name: Apply migrations
+        run: npm run db:migrate
+
+      - run: npm run lint
+      - run: npm run typecheck
+
+      - name: Unit, rules and API tests
+        run: npm test
+
+      # Measures the safety rules against the labelled vignettes. Fails the build if
+      # emergency recall drops, anything is under-triaged, or false alarms rise.
+      - name: Triage evaluation
+        run: npm run eval
+
+      - name: Build
+        run: npm run build
+
+      - name: No server secret reaches the client bundle
+        run: npm run check:secrets
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end journey
+        run: npm run test:e2e
+
+      - name: Upload evaluation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-eval
+          path: eval/report.json
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

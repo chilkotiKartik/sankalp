@@ -1,0 +1,125 @@
+/*
+ * Sanjeevani design tokens.
+ * Warm paper neutrals, a deep sage primary and a saffron warmth accent.
+ * Urgency colours are reserved for clinical meaning only.
+ */
+:root {
+  --paper: #f6f2eb;
+  --paper-raised: #fbf9f5;
+  --paper-sunk: #ede7dc;
+  --ink: #1c2624;
+  --ink-soft: #4f5b58;
+  --ink-faint: #7b8481;
+  --line: #ddd5c8;
+  --line-strong: #c2b8a8;
+
+  --sage: #2d6a5c;
+  --sage-deep: #1f4d42;
+  --sage-soft: #dde9e3;
+  --saffron: #d4843a;
+  --saffron-soft: #f5e2cd;
+
+  --u-emergency: #b3261e;
+  --u-emergency-soft: #fbe4e1;
+  --u-urgent: #a35f00;
+  --u-urgent-soft: #fbeed6;
+  --u-routine: #2a6394;
+  --u-routine-soft: #e1ecf6;
+  --u-selfcare: #2d6a5c;
+  --u-selfcare-soft: #dde9e3;
+
+  --focus: #1b5fd1;
+  /* Fixed emergency red for surfaces with white text — identical in every theme. */
+  --sos: #b3261e;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --shadow-soft: 0 1px 2px rgb(28 38 36 / 0.05), 0 8px 24px -12px rgb(28 38 36 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(28 38 36 / 0.06), 0 24px 48px -24px rgb(28 38 36 / 0.3);
+  --text-scale: 1;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #111615;
+    --paper-raised: #181f1d;
+    --paper-sunk: #0c100f;
+    --ink: #ecefea;
+    --ink-soft: #b5bdb9;
+    --ink-faint: #858f8b;
+    --line: #2a3431;
+    --line-strong: #3b4743;
+    --sage: #7cc2ae;
+    --sage-deep: #a5dccb;
+    --sage-soft: #1d2d28;
+    --saffron: #e9a560;
+    --saffron-soft: #3a2a1b;
+    --u-emergency: #ff8a80;
+    --u-emergency-soft: #3b1614;
+    --u-urgent: #f2b85b;
+    --u-urgent-soft: #372a12;
+    --u-routine: #8cbcea;
+    --u-routine-soft: #16263a;
+    --u-selfcare: #7cc2ae;
+    --u-selfcare-soft: #1d2d28;
+    --focus: #8ab4ff;
+    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 48px -24px rgb(0 0 0 / 0.7);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #111615;
+  --paper-raised: #181f1d;
+  --paper-sunk: #0c100f;
+  --ink: #ecefea;
+  --ink-soft: #b5bdb9;
+  --ink-faint: #858f8b;
+  --line: #2a3431;
+  --line-strong: #3b4743;
+  --sage: #7cc2ae;
+  --sage-deep: #a5dccb;
+  --sage-soft: #1d2d28;
+  --saffron: #e9a560;
+  --saffron-soft: #3a2a1b;
+  --u-emergency: #ff8a80;
+  --u-emergency-soft: #3b1614;
+  --u-urgent: #f2b85b;
+  --u-urgent-soft: #372a12;
+  --u-routine: #8cbcea;
+  --u-routine-soft: #16263a;
+  --u-selfcare: #7cc2ae;
+  --u-selfcare-soft: #1d2d28;
+  --focus: #8ab4ff;
+  color-scheme: dark;
+}
+
+/* High contrast: maximum legibility for low vision. */
+:root[data-contrast='high'] {
+  --paper: #ffffff;
+  --paper-raised: #ffffff;
+  --paper-sunk: #f0f0f0;
+  --ink: #000000;
+  --ink-soft: #111111;
+  --ink-faint: #333333;
+  --line: #000000;
+  --line-strong: #000000;
+  --sage: #004d3d;
+  --sage-deep: #00352a;
+  --sage-soft: #e6f2ee;
+  --u-emergency: #9b0000;
+  --u-urgent: #6b3d00;
+  --u-routine: #00386b;
+  --focus: #0038ff;
+  color-scheme: light;
+}
+
+:root[data-text='large'] {
+  --text-scale: 1.15;
+}
+:root[data-text='xlarge'] {
+  --text-scale: 1.32;
+}

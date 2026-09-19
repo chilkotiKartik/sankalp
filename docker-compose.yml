@@ -1,0 +1,74 @@
+# Local production-like stack: PostgreSQL + API + web.
+# Secrets here are development defaults. In a real deployment, supply them from
+# your platform's secret store and never commit them.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sanjeevani
+      POSTGRES_PASSWORD: sanjeevani
+      POSTGRES_DB: sanjeevani
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sanjeevani -d sanjeevani']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Not published by default — only the API needs it.
+    expose:
+      - '5432'
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: '4000'
+      APP_ORIGIN: http://localhost:3000
+      DEMO_MODE: 'true'
+      PROVIDER_MODE: auto
+      REGION_ID: gurugram
+      PERSISTENCE: postgres
+      DATABASE_URL: postgresql://sanjeevani:sanjeevani@db:5432/sanjeevani
+      TRUST_PROXY: '1'
+      RETENTION_DAYS: '7'
+      # Development-only values. Replace before deploying anywhere real.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-000000000000000000000000000000000000000000000000}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-ZGV2LW9ubHktY2hhbmdlLW1lLTMyLWJ5dGVzLWtleSE=}
+      # Optional providers — set in your shell or an .env file to enable them.
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-}
+      ELEVENLABS_VOICE_ID_HI: ${ELEVENLABS_VOICE_ID_HI:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+    # Apply migrations and seed the curated directory, then serve.
+    command: >
+      sh -c "npx tsx scripts/migrate.ts && npx tsx prisma/seed.ts && node apps/api/dist/index.js"
+    expose:
+      - '4000'
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      # Server-side only: the browser never sees this.
+      API_INTERNAL_URL: http://api:4000
+      NEXT_PUBLIC_MAP_TILE_URL: ${NEXT_PUBLIC_MAP_TILE_URL:-https://tile.openstreetmap.org/{z}/{x}/{y}.png}
+      NEXT_PUBLIC_MAP_ATTRIBUTION: ${NEXT_PUBLIC_MAP_ATTRIBUTION:-© OpenStreetMap contributors}
+    ports:
+      - '3000:3000'
+
+volumes:
+  db-data:

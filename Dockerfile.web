@@ -1,0 +1,45 @@
+# ── Build ────────────────────────────────────────────────────────────────────
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+# The image needs Next.js to emit its self-contained server; managed platforms build
+# their own output from the same source and must not get this.
+ENV CI=1 NEXT_TELEMETRY_DISABLED=1 NEXT_OUTPUT_STANDALONE=1
+
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages/ai/package.json packages/ai/
+COPY packages/config/package.json packages/config/
+COPY packages/db/package.json packages/db/
+COPY packages/maps/package.json packages/maps/
+COPY packages/medical-safety/package.json packages/medical-safety/
+COPY packages/types/package.json packages/types/
+COPY packages/ui/package.json packages/ui/
+COPY packages/voice/package.json packages/voice/
+COPY prisma/schema.prisma prisma/
+COPY scripts/prisma-generate.mjs scripts/
+RUN npm ci
+
+COPY . .
+RUN npm run db:generate \
+ && npm run build -w @sanjeevani/web \
+ && npx tsx scripts/check-client-secrets.ts
+
+# ── Runtime ──────────────────────────────────────────────────────────────────
+FROM node:22-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# Next.js standalone output: server, traced node_modules, static assets.
+COPY --from=build /app/apps/web/.next/standalone ./
+COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /app/apps/web/public ./apps/web/public
+
+USER node
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=25s \
+  CMD curl -fsS http://127.0.0.1:3000/ || exit 1
+CMD ["node", "apps/web/server.js"]

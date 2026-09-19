@@ -1,0 +1,17 @@
+{
+  "name": "@sanjeevani/ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@sanjeevani/config": "*",
+    "@sanjeevani/types": "*",
+    "@sanjeevani/medical-safety": "*",
+    "zod": "^4.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+node_modules
+.next
+.vercel
+dist
+coverage
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+playwright-report
+test-results
+.turbo
+next-env.d.ts
+*.tsbuildinfo
+packages/db/src/generated
